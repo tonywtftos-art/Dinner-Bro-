@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>晚餐吃什麼？</title>
+<style>
+  :root {
+    --bg: #fff6ec;
+    --card: #ffffff;
+    --ink: #3b2a1f;
+    --muted: #8a7462;
+    --accent: #e8572a;
+    --accent-dark: #c4431b;
+    --accent-soft: #ffe3d3;
+    --line: #f0dcc8;
+    --green: #2f8f5b;
+    --radius: 18px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 480px; margin: 0 auto; padding: 20px 16px 48px; }
+  header { text-align: center; margin: 8px 0 20px; }
+  header h1 { margin: 0; font-size: 28px; letter-spacing: 1px; }
+  header p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 18px 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 14px rgba(120, 70, 30, 0.08);
+  }
+  .card h2 { margin: 0 0 12px; font-size: 17px; }
+
+  .q { margin-bottom: 14px; }
+  .q:last-child { margin-bottom: 0; }
+  .q-label { font-size: 14px; color: var(--muted); margin-bottom: 6px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    border: 1.5px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    border-radius: 999px;
+    padding: 7px 14px;
+    font-size: 15px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all .15s;
+  }
+  .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .slot {
+    height: 150px;
+    border-radius: var(--radius);
+    background: var(--accent-soft);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+    overflow: hidden;
+    border: 3px dashed #f5b896;
+  }
+  .slot .emoji { font-size: 54px; line-height: 1.1; }
+  .slot .name { font-size: 24px; font-weight: 700; margin-top: 4px; }
+  .slot .hint { color: var(--muted); font-size: 15px; }
+  .slot.spinning .emoji, .slot.spinning .name { filter: blur(0.6px); }
+  .slot.done { border-style: solid; border-color: var(--accent); background: #fff; }
+  .slot.done .emoji { animation: pop .45s ease; }
+  @keyframes pop { 0% { transform: scale(.5); } 70% { transform: scale(1.2); } 100% { transform: scale(1); } }
+
+  .count { text-align: center; font-size: 14px; color: var(--muted); margin-bottom: 10px; }
+  .count b { color: var(--accent); }
+
+  .btn {
+    display: block;
+    width: 100%;
+    border: none;
+    border-radius: 14px;
+    padding: 14px;
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    margin-bottom: 10px;
+    transition: transform .08s, background .15s;
+  }
+  .btn:active { transform: scale(.98); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-main { background: var(--accent); color: #fff; }
+  .btn-main:hover:not(:disabled) { background: var(--accent-dark); }
+  .btn-sub { background: #fff; color: var(--accent); border: 2px solid var(--accent); }
+  .btn-ok { background: var(--green); color: #fff; }
+  .btn-map { background: #fff; color: var(--ink); border: 2px solid var(--line); }
+  .row { display: flex; gap: 10px; }
+  .row .btn { flex: 1; }
+  .hidden { display: none !important; }
+  .msg { text-align: center; font-size: 14px; color: var(--accent-dark); min-height: 20px; margin-bottom: 6px; }
+
+  .history-item, .dish-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 15px;
+  }
+  .history-item:last-child, .dish-item:last-child { border-bottom: none; }
+  .tag { font-size: 12px; color: var(--muted); }
+  .x {
+    border: none;
+    background: none;
+    color: var(--muted);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0 6px;
+    line-height: 1;
+  }
+  .x:hover { color: var(--accent-dark); }
+  .empty { color: var(--muted); font-size: 14px; text-align: center; padding: 6px 0; }
+  .blocked { color: var(--muted); font-size: 12px; margin-left: 6px; }
+
+  .link-btn {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0;
+    font-family: inherit;
+  }
+  .card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .card-head h2 { margin: 0; }
+
+  input[type=text] {
+    width: 100%;
+    padding: 11px 12px;
+    font-size: 16px;
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    font-family: inherit;
+    margin-bottom: 12px;
+  }
+  input[type=text]:focus { outline: none; border-color: var(--accent); }
+  .add-box { background: var(--bg); border-radius: 14px; padding: 14px; margin-bottom: 14px; }
+  .dish-list { max-height: 360px; overflow-y: auto; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🍽️ 晚餐吃什麼？</h1>
+    <p>回答 3 個問題，剩下的交給運氣</p>
+  </header>
+
+  <!-- 篩選問題 -->
+  <section class="card">
+    <h2>1. 先縮小範圍</h2>
+    <div class="q">
+      <div class="q-label">想吃哪種菜系？</div>
+      <div class="chips" data-q="cuisine"></div>
+    </div>
+    <div class="q">
+      <div class="q-label">想吃什麼主食？</div>
+      <div class="chips" data-q="staple"></div>
+    </div>
+    <div class="q">
+      <div class="q-label">預算多少？</div>
+      <div class="chips" data-q="price"></div>
+    </div>
+  </section>
+
+  <!-- 抽籤 -->
+  <section class="card">
+    <h2>2. 開抽！</h2>
+    <div class="slot" id="slot">
+      <div class="hint">按下「開抽！」看看今晚吃什麼</div>
+    </div>
+    <div class="count" id="count"></div>
+    <div class="msg" id="msg"></div>
+
+    <button class="btn btn-main" id="drawBtn">開抽！</button>
+    <div id="resultBtns" class="hidden">
+      <button class="btn btn-sub" id="rerollBtn">這個不要，再抽一次</button>
+      <div class="row">
+        <button class="btn btn-ok" id="eatBtn">就吃這個！</button>
+        <button class="btn btn-map" id="mapBtn">📍 找附近的店</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 最近吃過 -->
+  <section class="card">
+    <h2>最近吃過的</h2>
+    <div id="history"></div>
+    <div class="tag" style="margin-top:8px;">最近 3 天吃過的不會被抽到，第 4 天自動恢復。</div>
+  </section>
+
+  <!-- 管理清單 -->
+  <section class="card">
+    <div class="card-head">
+      <h2>料理清單</h2>
+      <button class="link-btn" id="toggleManage">管理 ▾</button>
+    </div>
+    <div id="manage" class="hidden">
+      <div class="add-box">
+        <input type="text" id="newName" placeholder="新增料理，例如：學餐自助餐" maxlength="20">
+        <div class="q">
+          <div class="q-label">菜系</div>
+          <div class="chips" data-new="cuisine"></div>
+        </div>
+        <div class="q">
+          <div class="q-label">主食</div>
+          <div class="chips" data-new="staple"></div>
+        </div>
+        <div class="q">
+          <div class="q-label">價位</div>
+          <div class="chips" data-new="price"></div>
+        </div>
+        <button class="btn btn-main" id="addBtn" style="margin:12px 0 0;">新增</button>
+      </div>
+      <div class="dish-list" id="dishList"></div>
+      <button class="btn btn-sub" id="resetBtn" style="margin-top:14px;">恢復預設清單</button>
+    </div>
+    <div class="tag" id="dishCount"></div>
+  </section>
+
+</div>
+
+<script>
+// ===== 選項定義 =====
+const OPTIONS = {
+  cuisine: ['中式', '西式', '異國料理'],
+  staple: ['飯', '麵', '速食', '其他'],
+  price: ['150 元以下', '150～300 元', '300 元以上'],
+};
+// 篩選問題的主食選項不顯示「其他」，「其他」只在選「都可以」時出現
+const QUESTION_OPTIONS = {
+  cuisine: OPTIONS.cuisine,
+  staple: ['飯', '麵', '速食'],
+  price: OPTIONS.price,
+};
+const ANY = '都可以';
+
+// ===== 內建料理清單 =====
+const DEFAULT_DISHES = [
+  { name: '滷肉飯', emoji: '🍚', cuisine: '中式', staple: '飯', price: '150 元以下' },
+  { name: '便當', emoji: '🍱', cuisine: '中式', staple: '飯', price: '150 元以下' },
+  { name: '熱炒', emoji: '🥘', cuisine: '中式', staple: '飯', price: '300 元以上' },
+  { name: '牛肉麵', emoji: '🍜', cuisine: '中式', staple: '麵', price: '150～300 元' },
+  { name: '水餃鍋貼', emoji: '🥟', cuisine: '中式', staple: '其他', price: '150 元以下' },
+  { name: '火鍋', emoji: '🍲', cuisine: '中式', staple: '其他', price: '300 元以上' },
+  { name: '義大利麵', emoji: '🍝', cuisine: '西式', staple: '麵', price: '150～300 元' },
+  { name: '漢堡速食', emoji: '🍔', cuisine: '西式', staple: '速食', price: '150 元以下' },
+  { name: '披薩', emoji: '🍕', cuisine: '西式', staple: '速食', price: '150～300 元' },
+  { name: '炸雞', emoji: '🍗', cuisine: '西式', staple: '速食', price: '150 元以下' },
+  { name: '燉飯', emoji: '🧀', cuisine: '西式', staple: '飯', price: '150～300 元' },
+  { name: '牛排', emoji: '🥩', cuisine: '西式', staple: '其他', price: '300 元以上' },
+  { name: '拉麵', emoji: '🍜', cuisine: '異國料理', staple: '麵', price: '150～300 元' },
+  { name: '丼飯', emoji: '🍛', cuisine: '異國料理', staple: '飯', price: '150～300 元' },
+  { name: '咖哩飯', emoji: '🍛', cuisine: '異國料理', staple: '飯', price: '150～300 元' },
+  { name: '韓式', emoji: '🥢', cuisine: '異國料理', staple: '飯', price: '150～300 元' },
+  { name: '泰式', emoji: '🌶️', cuisine: '異國料理', staple: '飯', price: '300 元以上' },
+  { name: '越南河粉', emoji: '🍲', cuisine: '異國料理', staple: '麵', price: '150～300 元' },
+  { name: '壽司', emoji: '🍣', cuisine: '異國料理', staple: '其他', price: '300 元以上' },
+];
+
+const BLOCK_DAYS = 3; // 最近 3 天吃過的不抽
+const KEY_DISHES = 'dinner-picker-dishes';
+const KEY_HISTORY = 'dinner-picker-history';
+
+// ===== 儲存（瀏覽器 localStorage，失敗時仍可正常使用） =====
+function load(key, fallback) {
+  try {
+    const v = localStorage.getItem(key);
+    return v ? JSON.parse(v) : fallback;
+  } catch (e) { return fallback; }
+}
+function save(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+}
+
+let dishes = load(KEY_DISHES, null) || DEFAULT_DISHES.map(d => ({ ...d }));
+let history = load(KEY_HISTORY, []); // [{ name, date: 'YYYY-MM-DD' }]
+let answers = { cuisine: ANY, staple: ANY, price: ANY };
+let newDish = { cuisine: OPTIONS.cuisine[0], staple: OPTIONS.staple[0], price: OPTIONS.price[0] };
+let rejected = new Set(); // 這一輪按「不要」排除的
+let current = null;
+let spinning = false;
+
+// ===== 日期工具 =====
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function daysAgo(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const then = new Date(y, m - 1, d);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((today - then) / 86400000);
+}
+function recentlyEaten() {
+  const set = new Set();
+  history.forEach(h => { if (daysAgo(h.date) < BLOCK_DAYS) set.add(h.name); });
+  return set;
+}
+
+// ===== 篩選 =====
+function matches(dish) {
+  if (answers.cuisine !== ANY && dish.cuisine !== answers.cuisine) return false;
+  if (answers.staple !== ANY && dish.staple !== answers.staple) return false;
+  if (answers.price !== ANY && dish.price !== answers.price) return false;
+  return true;
+}
+function candidates() {
+  const recent = recentlyEaten();
+  return dishes.filter(d => matches(d) && !recent.has(d.name) && !rejected.has(d.name));
+}
+
+// ===== 畫面：選項按鈕 =====
+function renderChips(container, list, selected, onPick) {
+  container.innerHTML = '';
+  list.forEach(opt => {
+    const b = document.createElement('button');
+    b.className = 'chip' + (opt === selected ? ' on' : '');
+    b.textContent = opt;
+    b.type = 'button';
+    b.onclick = () => onPick(opt);
+    container.appendChild(b);
+  });
+}
+function renderQuestions() {
+  document.querySelectorAll('[data-q]').forEach(el => {
+    const q = el.dataset.q;
+    renderChips(el, [...QUESTION_OPTIONS[q], ANY], answers[q], opt => {
+      answers[q] = opt;
+      rejected.clear(); // 換條件就重新開始這一輪
+      resetResult();
+      renderQuestions();
+      renderCount();
+    });
+  });
+}
+function renderNewDishChips() {
+  document.querySelectorAll('[data-new]').forEach(el => {
+    const q = el.dataset.new;
+    renderChips(el, OPTIONS[q], newDish[q], opt => {
+      newDish[q] = opt;
+      renderNewDishChips();
+    });
+  });
+}
+
+function renderCount() {
+  const n = candidates().length;
+  const el = document.getElementById('count');
+  el.innerHTML = `共 <b>${n}</b> 個候選`;
+  document.getElementById('drawBtn').disabled = n === 0 || spinning;
+  document.getElementById('rerollBtn').disabled = spinning;
+  document.getElementById('msg').textContent = n === 0
+    ? (rejected.size > 0 ? '都被你拒絕了！換個條件試試' : '條件太嚴格了，放寬一項試試')
+    : '';
+}
+
+// ===== 抽籤動畫（拉霸機） =====
+const slot = document.getElementById('slot');
+function showInSlot(dish, extraClass) {
+  slot.className = 'slot' + (extraClass ? ' ' + extraClass : '');
+  slot.innerHTML = `<div class="emoji">${dish.emoji || '🍽️'}</div><div class="name"></div>`;
+  slot.querySelector('.name').textContent = dish.name;
+}
+function resetResult() {
+  current = null;
+  slot.className = 'slot';
+  slot.innerHTML = '<div class="hint">按下「開抽！」看看今晚吃什麼</div>';
+  document.getElementById('drawBtn').classList.remove('hidden');
+  document.getElementById('resultBtns').classList.add('hidden');
+}
+
+function draw() {
+  const pool = candidates();
+  if (pool.length === 0 || spinning) return;
+  spinning = true;
+  renderCount();
+
+  const winner = pool[Math.floor(Math.random() * pool.length)];
+  // 跳動時也用全部符合條件的料理，看起來比較熱鬧
+  const show = dishes.filter(matches);
+  const steps = 22;
+  let i = 0;
+  function tick() {
+    if (i < steps) {
+      const d = show[Math.floor(Math.random() * show.length)] || winner;
+      showInSlot(d, 'spinning');
+      i++;
+      // 越跳越慢：從 40ms 慢慢增加到約 200ms，總長約 2 秒
+      setTimeout(tick, 40 + i * i * 0.35);
+    } else {
+      current = winner;
+      showInSlot(winner, 'done');
+      spinning = false;
+      document.getElementById('drawBtn').classList.add('hidden');
+      document.getElementById('resultBtns').classList.remove('hidden');
+      renderCount();
+    }
+  }
+  tick();
+}
+
+document.getElementById('drawBtn').onclick = draw;
+
+document.getElementById('rerollBtn').onclick = () => {
+  if (!current || spinning) return;
+  rejected.add(current.name);
+  if (candidates().length === 0) {
+    resetResult();
+    renderCount();
+    return;
+  }
+  draw();
+};
+
+document.getElementById('eatBtn').onclick = () => {
+  if (!current) return;
+  history.unshift({ name: current.name, date: todayStr() });
+  history = history.slice(0, 30);
+  save(KEY_HISTORY, history);
+  const name = current.name;
+  rejected.clear();
+  resetResult();
+  slot.innerHTML = '<div class="emoji">😋</div><div class="name"></div><div class="hint">已記錄，祝你用餐愉快！</div>';
+  slot.querySelector('.name').textContent = name;
+  renderHistory();
+  renderCount();
+};
+
+document.getElementById('mapBtn').onclick = () => {
+  if (!current) return;
+  const url = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('附近的 ' + current.name);
+  window.open(url, '_blank');
+};
+
+// ===== 最近吃過 =====
+function renderHistory() {
+  const el = document.getElementById('history');
+  const recent = history.filter(h => daysAgo(h.date) < 7);
+  if (recent.length === 0) {
+    el.innerHTML = '<div class="empty">還沒有紀錄</div>';
+    return;
+  }
+  el.innerHTML = '';
+  recent.forEach(h => {
+    const ago = daysAgo(h.date);
+    const label = ago === 0 ? '今天' : ago === 1 ? '昨天' : `${ago} 天前`;
+    const row = document.createElement('div');
+    row.className = 'history-item';
+    const left = document.createElement('div');
+    left.textContent = `${label}・${h.name}`;
+    if (ago < BLOCK_DAYS) {
+      const s = document.createElement('span');
+      s.className = 'blocked';
+      s.textContent = '暫停中';
+      left.appendChild(s);
+    }
+    const x = document.createElement('button');
+    x.className = 'x';
+    x.title = '刪除這筆紀錄';
+    x.textContent = '×';
+    x.onclick = () => {
+      history = history.filter(item => item !== h);
+      save(KEY_HISTORY, history);
+      renderHistory();
+      renderCount();
+    };
+    row.appendChild(left);
+    row.appendChild(x);
+    el.appendChild(row);
+  });
+}
+
+// ===== 管理清單 =====
+function renderDishes() {
+  const el = document.getElementById('dishList');
+  el.innerHTML = '';
+  dishes.forEach((d, idx) => {
+    const row = document.createElement('div');
+    row.className = 'dish-item';
+    const left = document.createElement('div');
+    left.innerHTML = `<div></div><div class="tag"></div>`;
+    left.children[0].textContent = `${d.emoji || '🍽️'} ${d.name}`;
+    left.children[1].textContent = `${d.cuisine}・${d.staple}・${d.price}`;
+    const x = document.createElement('button');
+    x.className = 'x';
+    x.title = '刪除';
+    x.textContent = '×';
+    x.onclick = () => {
+      dishes.splice(idx, 1);
+      save(KEY_DISHES, dishes);
+      renderDishes();
+      resetResult();
+      renderCount();
+    };
+    row.appendChild(left);
+    row.appendChild(x);
+    el.appendChild(row);
+  });
+  if (dishes.length === 0) el.innerHTML = '<div class="empty">清單是空的，新增一些料理吧</div>';
+  document.getElementById('dishCount').textContent = `目前共 ${dishes.length} 道料理`;
+}
+
+document.getElementById('toggleManage').onclick = () => {
+  const m = document.getElementById('manage');
+  m.classList.toggle('hidden');
+  document.getElementById('toggleManage').textContent = m.classList.contains('hidden') ? '管理 ▾' : '收起 ▴';
+};
+
+document.getElementById('addBtn').onclick = () => {
+  const input = document.getElementById('newName');
+  const name = input.value.trim();
+  if (!name) { input.focus(); return; }
+  if (dishes.some(d => d.name === name)) {
+    alert('清單裡已經有「' + name + '」了');
+    return;
+  }
+  dishes.unshift({ name, emoji: '🍽️', ...newDish });
+  save(KEY_DISHES, dishes);
+  input.value = '';
+  renderDishes();
+  renderCount();
+};
+document.getElementById('newName').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('addBtn').click();
+});
+
+document.getElementById('resetBtn').onclick = () => {
+  if (!confirm('確定要恢復預設清單嗎？你新增的料理會被刪除。')) return;
+  dishes = DEFAULT_DISHES.map(d => ({ ...d }));
+  save(KEY_DISHES, dishes);
+  renderDishes();
+  resetResult();
+  renderCount();
+};
+
+// ===== 啟動 =====
+renderQuestions();
+renderNewDishChips();
+renderHistory();
+renderDishes();
+renderCount();
+</script>
+</body>
+</html>
